@@ -103,6 +103,13 @@ classdef CAAnnotatedClass < handle
         end
 
         function writeToGroup(self,group,propertyAnnotations,attributes)
+            % Writes this class to a NetCDF group
+            %
+            % - Topic: CAAnnotatedClass requirement
+            % - Declaration: writeToGroup(group,propertyAnnotations,attributes)
+            % - Parameter group: NetCDFGroup
+            % - Parameter propertyAnnotations: CAPropertyAnnotation
+            % - Parameter attributes: configureDictionary("string","string")
             arguments
                 self CAAnnotatedClass
                 group NetCDFGroup
