@@ -1,12 +1,14 @@
 classdef AnnotationTestClassB < handle & CAAnnotatedClass
     properties
         x
+        y
     end
 
     methods
         function self = AnnotationTestClassB(options)
             arguments
                 options.x
+                options.y
             end
             requiredProperties = feval(strcat(class(self),'.classRequiredPropertyNames'));
             canInitializeDirectly = all(isfield(options,requiredProperties));
@@ -17,6 +19,7 @@ classdef AnnotationTestClassB < handle & CAAnnotatedClass
                 end
             else
                 self.x = linspace(-100,0,101);
+                self.y = self.x.^2;
             end
         end
     end
@@ -24,7 +27,7 @@ classdef AnnotationTestClassB < handle & CAAnnotatedClass
     methods (Static)
 
         function vars = classRequiredPropertyNames()
-            vars = {'x'};
+            vars = {'x','y'};
         end
 
         function propertyAnnotations = classDefinedPropertyAnnotations()
@@ -33,6 +36,7 @@ classdef AnnotationTestClassB < handle & CAAnnotatedClass
             end
             propertyAnnotations = CAPropertyAnnotation.empty(0,0);
             propertyAnnotations(end+1) = CADimensionProperty('x', 'm', 'x coordinate');
+            propertyAnnotations(end+1) = CANumericProperty('y', {'x'}, '', 'A variable quadratic in x.');
         end
         
         function atc = annotatedTestClassFromFile(path)

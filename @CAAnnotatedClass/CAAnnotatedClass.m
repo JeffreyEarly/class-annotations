@@ -116,6 +116,7 @@ classdef CAAnnotatedClass < handle
                 propertyAnnotations CAPropertyAnnotation = CAPropertyAnnotation.empty(0,0)
                 attributes = configureDictionary("string","string")
             end
+            propertyAnnotations = CAAnnotatedClass.propertyAnnotationsIncludingRequiredDimensions(self, propertyAnnotations);
             group.addAttribute('AnnotatedClass',class(self));
 
             % Attributes are added to the targetGroup, not the (potential)
@@ -141,7 +142,9 @@ classdef CAAnnotatedClass < handle
                     obj = self.(propertyAnnotations(i).name);
                     assert( isa(obj,'CAAnnotatedClass'),'The object property %s is not a subclass of CAAnnotatedClass, and thus cannot be added to file',propertyAnnotations(i).name);
                     objGroup = group.addGroup(propertyAnnotations(i).name);
-                    if isscalar(obj)
+                    if isempty(obj)
+                        objGroup.addAttribute('AnnotatedClassArray', class(obj));
+                    elseif isscalar(obj)
                         objPropertyAnnotations = obj.propertyAnnotationWithName(obj.requiredProperties);
                         obj.writeToGroup(objGroup,objPropertyAnnotations);
                     else
@@ -180,6 +183,7 @@ classdef CAAnnotatedClass < handle
             var = CAAnnotatedClass.propertyValuesFromGroup(group,requiredProperties);
             varCell = namedargs2cell(var);
             atc = feval(className,varCell{:});
+            atc.restoreOptionalPersistedPropertiesFromGroup(group);
         end
 
         function var = requiredPropertiesFromGroup(group,options)
@@ -233,19 +237,28 @@ classdef CAAnnotatedClass < handle
                             className = objGroup.attributes('AnnotatedClass');
                             var.(name) = options.classConstructor(className,objGroup);
                             continue;
+                        elseif isKey(objGroup.attributes,'AnnotatedClassArray')
+                            className = string(objGroup.attributes('AnnotatedClassArray'));
+                            var.(name) = CAAnnotatedClass.emptyArrayForClass(className);
+                            continue;
                         end
                     else
+                        tmp = cell(0,1);
                         for iObj=1:length(objGroup.groups)
                             subGroupName = join( [string(name),string(iObj)],"-");
                             if objGroup.hasGroupWithName(subGroupName)
                                 subGroup = objGroup.groupWithName(subGroupName);
                                 if isKey(subGroup.attributes,'AnnotatedClass')
                                     className = subGroup.attributes('AnnotatedClass');
-                                    tmp(iObj) = options.classConstructor(className,subGroup);
+                                    tmp{end+1,1} = options.classConstructor(className,subGroup); %#ok<AGROW>
                                 end
                             end
                         end
-                        var.(name) = tmp;
+                        if isempty(tmp)
+                            var.(name) = CAAnnotatedClass.emptyArrayForClass("CAAnnotatedClass");
+                        else
+                            var.(name) = vertcat(tmp{:});
+                        end
                         continue;
                     end
                 end
@@ -317,6 +330,46 @@ classdef CAAnnotatedClass < handle
     end
 
     methods (Static, Access = private)
+        function propertyAnnotations = propertyAnnotationsIncludingRequiredDimensions(ac,propertyAnnotations)
+            arguments
+                ac CAAnnotatedClass {mustBeNonempty}
+                propertyAnnotations CAPropertyAnnotation = CAPropertyAnnotation.empty(0,0)
+            end
+
+            if isempty(propertyAnnotations)
+                return;
+            end
+
+            selectedNames = string({propertyAnnotations.name});
+            missingDimensionNames = string.empty(1,0);
+            for iProperty = 1:length(propertyAnnotations)
+                if ~isa(propertyAnnotations(iProperty), 'CANumericProperty')
+                    continue;
+                end
+                dimensionNames = string(propertyAnnotations(iProperty).dimensions);
+                for iDim = 1:length(dimensionNames)
+                    dimensionName = dimensionNames(iDim);
+                    if any(selectedNames == dimensionName) || any(missingDimensionNames == dimensionName)
+                        continue;
+                    end
+                    missingDimensionNames(end+1) = dimensionName; %#ok<AGROW>
+                end
+            end
+
+            if isempty(missingDimensionNames)
+                return;
+            end
+
+            propertyAnnotations = cat(2, ac.propertyAnnotationWithName(missingDimensionNames), propertyAnnotations);
+        end
+
+        function emptyArray = emptyArrayForClass(className)
+            arguments
+                className (1,1) string
+            end
+            emptyArray = feval(strcat(className, '.empty'), 0, 1);
+        end
+
         function throwErrorIfUnserializableFunctionProperties(ac,objectPath,propertyAnnotations)
             arguments
                 ac CAAnnotatedClass {mustBeNonempty}
@@ -495,5 +548,14 @@ classdef CAAnnotatedClass < handle
         %         end
         %     end
         % end
+    end
+
+    methods (Access = protected)
+        function restoreOptionalPersistedPropertiesFromGroup(self,group)
+            arguments
+                self (1,1) CAAnnotatedClass
+                group (1,1) NetCDFGroup
+            end
+        end
     end
 end
