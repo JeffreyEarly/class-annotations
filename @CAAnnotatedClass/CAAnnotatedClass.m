@@ -302,17 +302,66 @@ classdef CAAnnotatedClass < handle
                 ncfile NetCDFFile
             end
 
-            if options.shouldOverwriteExisting == 1
-                if isfile(path)
-                    delete(path);
-                end
-            else
-                if isfile(path)
-                    error('A file already exists with that name.')
-                end
+            if options.shouldOverwriteExisting == 0 && isfile(path)
+                error('A file already exists with that name.')
+            end
+
+            CAAnnotatedClass.throwErrorIfUnserializableFunctionProperties(ac, string(class(ac)), options.propertyAnnotations);
+
+            if options.shouldOverwriteExisting == 1 && isfile(path)
+                delete(path);
             end
             ncfile = NetCDFFile(path);
             ac.writeToGroup(ncfile,options.propertyAnnotations,options.attributes);
+        end
+    end
+
+    methods (Static, Access = private)
+        function throwErrorIfUnserializableFunctionProperties(ac,objectPath,propertyAnnotations)
+            arguments
+                ac CAAnnotatedClass {mustBeNonempty}
+                objectPath (1,1) string
+                propertyAnnotations CAPropertyAnnotation = CAPropertyAnnotation.empty(0,0)
+            end
+            for iProperty = 1:length(propertyAnnotations)
+                propertyAnnotation = propertyAnnotations(iProperty);
+                propertyName = string(propertyAnnotation.name);
+                propertyPath = strcat(objectPath, ".", propertyName);
+                if isa(propertyAnnotation, 'CAFunctionProperty')
+                    CAAnnotatedClass.throwErrorIfUnserializableFunctionHandle(ac.(propertyAnnotation.name), propertyPath);
+                elseif isa(propertyAnnotation, 'CAObjectProperty')
+                    obj = ac.(propertyAnnotation.name);
+                    assert(isa(obj, 'CAAnnotatedClass'), 'The object property %s is not a subclass of CAAnnotatedClass, and thus cannot be added to file', propertyAnnotation.name);
+                    if isscalar(obj)
+                        objPropertyAnnotations = obj.propertyAnnotationWithName(obj.requiredProperties);
+                        CAAnnotatedClass.throwErrorIfUnserializableFunctionProperties(obj, propertyPath, objPropertyAnnotations);
+                    else
+                        for iObj = 1:length(obj)
+                            objPropertyAnnotations = obj(iObj).propertyAnnotationWithName(obj(iObj).requiredProperties);
+                            CAAnnotatedClass.throwErrorIfUnserializableFunctionProperties(obj(iObj), strcat(propertyPath, "(", string(iObj), ")"), objPropertyAnnotations);
+                        end
+                    end
+                end
+            end
+        end
+
+        function throwErrorIfUnserializableFunctionHandle(f,propertyPath)
+            arguments
+                f
+                propertyPath (1,1) string
+            end
+            if ~isa(f, 'function_handle')
+                error('CAAnnotatedClass:InvalidFunctionProperty', 'The CAFunctionProperty %s must contain a function_handle before it can be written to file.', propertyPath);
+            end
+
+            try
+                NetCDFGroup.serializeFunctionHandle("value", f);
+            catch ME
+                if strcmp(ME.identifier, 'NetCDFGroup:UnserializableFunctionHandle')
+                    error('CAAnnotatedClass:UnserializableFunctionHandle', 'Unable to persist the function handle stored in %s. %s', propertyPath, ME.message);
+                end
+                rethrow(ME);
+            end
         end
 
         % This was a previous implementation of writeToGroup which placed
