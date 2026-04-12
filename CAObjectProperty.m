@@ -1,40 +1,61 @@
 classdef CAObjectProperty < CAPropertyAnnotation
-    %Describes a property of the WVTransform
+    % Describe an annotated persisted object property.
     %
-    % In addition to adding a name, description and detailed description of
-    % a given property, you can also specify the properties dimensions,
-    % its units, and whether it is a complex number or not. These
-    % annotations are used for both online documentation and for writing to
-    % NetCDF files.
+    % `CAObjectProperty` documents a property whose value is another
+    % `CAAnnotatedClass` object or object array. The optional `className`
+    % and `sizeText` fields are documentation-only metadata used by
+    % `class-docs` when reflected MATLAB property validation is absent or
+    % incomplete.
     %
-    % Note that as a subclass of WVAnnotation, this class looks for
-    % a file (name).md in the directory where it is defined another other
-    % subdirectories. This file is then read-in to the detailed description
-    % that is used on the website.
+    % Like other property annotations, this class can populate its detailed
+    % description from a same-named markdown sidecar when documentation
+    % builders enable sidecar loading.
     %
-    % - Declaration: classdef WVPropertyAnnotation < [WVAnnotation](/classes/wvannotation/)
+    % - Declaration: classdef CAObjectProperty < CAPropertyAnnotation
+
+    properties (GetAccess=public, SetAccess=public)
+        % Documented class name for the object property.
+        %
+        % This field is documentation-only metadata and does not affect
+        % annotated persistence.
+        % - Topic: Properties
+        className
+
+        % Human-readable size text for the object property.
+        %
+        % Use this for freeform shapes such as `nonempty vector` when the
+        % property does not have reflected MATLAB size validation.
+        % - Topic: Properties
+        sizeText
+    end
 
     methods
         function self = CAObjectProperty(name,description,options)
-            % create a new instance of WVPropertyAnnotation
+            % Create a new object-property annotation.
             %
             % If a markdown file of the same name is in the same directory
             % or child directory, it will be loaded as the detailed
             % description upon initialization.
             %
             % - Topic: Initialization
-            % - Declaration: propAnnotation = WVPropertyAnnotation(name,dimensions,units,description,options)
+            % - Declaration: propAnnotation = CAObjectProperty(name,description,options)
             % - Parameter name: name of the property
             % - Parameter description: short description of the property
             % - Parameter detailedDescription: (optional) detailed description of the property
-            % - Returns propAnnotation: a new instance of WVPropertyAnnotation
+            % - Parameter className: (optional) documentation-only object class name
+            % - Parameter sizeText: (optional) documentation-only size text
+            % - Returns propAnnotation: a new instance of CAObjectProperty
             arguments
                 name char {mustBeNonempty}
                 description char {mustBeNonempty}
                 options.detailedDescription char = ''
+                options.className = ''
+                options.sizeText = ''
             end
 
             self@CAPropertyAnnotation(name,description,detailedDescription=options.detailedDescription);
+            self.className = string(options.className);
+            self.sizeText = string(options.sizeText);
         end
     end
 end

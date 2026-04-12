@@ -49,7 +49,7 @@ classdef AnnotationTestClass < handle & CAAnnotatedClass
 
             propertyAnnotations(end+1) = CANumericProperty('myVar',{'z'},'', 'A variable quadratic in z.');
             propertyAnnotations(end+1) = CAFunctionProperty('f', 'A function handle that does something!');
-            propertyAnnotations(end+1) = CAObjectProperty('myObjs', 'A bunch of objects');
+            propertyAnnotations(end+1) = CAObjectProperty('myObjs', 'A bunch of objects', className='AnnotationTestClassB', sizeText='vector or empty array');
         end
         
         function atc = annotatedTestClassFromFile(path)
