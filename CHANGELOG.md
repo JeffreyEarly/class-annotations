@@ -3,6 +3,7 @@
 ## [1.2.0] - 2026-04-10
 - added `CAEnableDetailedDescriptionSidecars()` so documentation builders can opt into annotation markdown sidecars without imposing sidecar lookup overhead on ordinary runtime annotation construction
 - changed `CAPropertyAnnotation` and `CAMethodAnnotation` so sidecar markdown is loaded only when documentation builders enable it explicitly
+- added docs-only `className` and `sizeText` metadata on `CAObjectProperty` so object-property documentation can describe class and shape information when reflected MATLAB validation is absent or incomplete
 
 ## [1.1.0] - 2026-04-09
 - added a shared annotated post-load hook so subclasses can restore optional persisted state after generic constructor-based reconstruction
