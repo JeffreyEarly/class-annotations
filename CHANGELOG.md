@@ -1,5 +1,8 @@
 # Version History
 
+## [1.2.1] - 2026-05-06
+- declared the required `NetCDF ^1.0.2` dependency so annotated function-handle persistence resolves the NetCDF serialization support it calls.
+
 ## [1.2.0] - 2026-04-10
 - added `CAEnableDetailedDescriptionSidecars()` so documentation builders can opt into annotation markdown sidecars without imposing sidecar lookup overhead on ordinary runtime annotation construction
 - changed `CAPropertyAnnotation` and `CAMethodAnnotation` so sidecar markdown is loaded only when documentation builders enable it explicitly
